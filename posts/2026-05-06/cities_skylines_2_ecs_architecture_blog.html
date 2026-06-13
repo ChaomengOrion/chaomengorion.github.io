@@ -1,0 +1,264 @@
+<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><title>拆解城市天际线2代：Unity模拟经营游戏背后的 ECS 架构 | Chaomeng&#39;s Blog</title><meta name="author" content="ChaomengOrion"><meta name="description" content=""><meta name="keywords" content="Blog"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><link rel="icon" href="/images/avatar.jpg"><script>(()=>{try{var e=localStorage.getItem("theme");"dark"===e||"light"===e?document.documentElement.dataset.theme=e:window.matchMedia("(prefers-color-scheme: dark)").matches&&(document.documentElement.dataset.theme="dark")}catch(e){}})()</script><link rel="preconnect" href="https://s4.zstatic.net"><script src="https://s4.zstatic.net/ajax/libs/vue/3.5.13/vue.global.prod.min.js"></script><link rel="stylesheet" href="https://s4.zstatic.net/ajax/libs/font-awesome/6.6.0/css/all.min.css"><link rel="preconnect" href="https://fonts.googleapis.cn"><link rel="preconnect" href="https://fonts.gstatic.cn" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.cn/css2?family=Fira+Code:wght@400;500;600;700&family=Lexend:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap"><script>let mixins={}</script><script src="https://polyfill.alicdn.com/v3/polyfill.min.js?features=default"></script><script src="https://s4.zstatic.net/ajax/libs/highlight.js/11.10.0/highlight.min.js"></script><script src="https://s4.zstatic.net/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script><link rel="stylesheet" href="https://s4.zstatic.net/ajax/libs/highlight.js/11.10.0/styles/github.min.css"><script src="/js/lib/highlight.js"></script><link rel="stylesheet" href="https://s4.zstatic.net/ajax/libs/KaTeX/0.16.9/katex.min.css"><script src="https://s4.zstatic.net/ajax/libs/KaTeX/0.16.9/katex.min.js"></script><script src="https://s4.zstatic.net/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script><script src="https://s4.zstatic.net/ajax/libs/KaTeX/0.16.9/contrib/copy-tex.min.js"></script><script src="/js/lib/math.js"></script><script src="/js/lib/preview.js"></script><link rel="stylesheet" href="/css/main.css"><script>(()=>{function e(){let e=document.createElement("script"),n=window.setTimeout(()=>{e.remove()},8e3);e.async=!0,e.src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js",e.onload=e.onerror=()=>window.clearTimeout(n),document.body.appendChild(e)}"complete"===document.readyState?window.setTimeout(e,0):window.addEventListener("load",()=>window.setTimeout(e,0),{once:!0})})()</script><script src="/js/lib/toc.js"></script><script>window.onMermaidLoaded=function(){let e=Promise.resolve();window.renderMermaid=function(){return e=e.catch(()=>{}).then(()=>{document.querySelectorAll("pre.mermaid").forEach(e=>{var r=document.createElement("div");r.className=e.className,r.classList.add("mermaid"),r.textContent=e.dataset.source||e.textContent,e.id&&(r.id=e.id),e.replaceWith(r)});var e="dark"===document.documentElement.dataset.theme;return mermaid.initialize({startOnLoad:!1,theme:e?"dark":"forest",themeVariables:e?{darkMode:!0,background:"#18222c",mainBkg:"#1e2a35",secondBkg:"#223141",primaryColor:"#1e2a35",primaryTextColor:"#f2f7fb",primaryBorderColor:"#7ab7ff",lineColor:"#9cc9ff",textColor:"#d8e3ea",edgeLabelBackground:"#18222c",tertiaryColor:"#2b3a46"}:{darkMode:!1,lineColor:"#4f9ce8",primaryBorderColor:"#4f9ce8",edgeLabelBackground:"#ffffff"}}),document.querySelectorAll(".mermaid[data-processed='true']").forEach(e=>{e.dataset.source&&(e.removeAttribute("data-processed"),e.textContent=e.dataset.source)}),document.querySelectorAll(".mermaid").forEach(e=>{e.dataset.source||(e.dataset.source=e.textContent)}),mermaid.run({querySelector:".mermaid"})}).catch(e=>{console.error("Mermaid render failed",e)})},window.renderMermaid()}</script><script async src="/js/mermaid/mermaid.min.js" onload="window.onMermaidLoaded&&window.onMermaidLoaded()"></script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="layout"><transition name="fade"><div id="loading" v-show="loading"><div id="loading-circle"><h2>LOADING</h2><p>加载过慢请开启缓存 浏览器默认开启</p><img src="/images/loading.gif"></div></div></transition><div id="menu" :class="{ hidden: hiddenMenu, 'menu-color': menuColor}"><nav id="desktop-menu"><a class="title" href="/"><span>CHAOMENG&#39;S BLOG</span> </a><a href="/"><i class="fa-solid fa-house fa-fw"></i> <span>&ensp;Home</span> </a><a href="/about"><i class="fa-solid fa-id-card fa-fw"></i> <span>&ensp;About</span> </a><a href="/archives"><i class="fa-solid fa-box-archive fa-fw"></i> <span>&ensp;Archives</span> </a><a href="/categories"><i class="fa-solid fa-bookmark fa-fw"></i> <span>&ensp;Categories</span> </a><a href="/tags"><i class="fa-solid fa-tags fa-fw"></i> <span>&ensp;Tags</span> </a><button class="theme-toggle" type="button" @click="toggleTheme" :aria-label="themeMode === 'dark' ? '切换到浅色模式' : '切换到深色模式'"><i class="fa-solid" :class="themeMode === 'dark' ? 'fa-sun' : 'fa-moon'"></i></button></nav><nav id="mobile-menu"><div class="title" @click="showMenuItems = !showMenuItems"><i class="fa-solid fa-bars fa-fw"></i> <span>&emsp;CHAOMENG&#39;S BLOG</span></div><button class="theme-toggle" type="button" @click.stop="toggleTheme" :aria-label="themeMode === 'dark' ? '切换到浅色模式' : '切换到深色模式'"><i class="fa-solid" :class="themeMode === 'dark' ? 'fa-sun' : 'fa-moon'"></i></button><transition name="slide"><div class="items" v-show="showMenuItems"><a href="/"><div class="item"><div style="min-width:20px;max-width:50px;width:10%"><i class="fa-solid fa-house fa-fw"></i></div><div style="min-width:100px;max-width:150%;width:20%">Home</div></div></a><a href="/about"><div class="item"><div style="min-width:20px;max-width:50px;width:10%"><i class="fa-solid fa-id-card fa-fw"></i></div><div style="min-width:100px;max-width:150%;width:20%">About</div></div></a><a href="/archives"><div class="item"><div style="min-width:20px;max-width:50px;width:10%"><i class="fa-solid fa-box-archive fa-fw"></i></div><div style="min-width:100px;max-width:150%;width:20%">Archives</div></div></a><a href="/categories"><div class="item"><div style="min-width:20px;max-width:50px;width:10%"><i class="fa-solid fa-bookmark fa-fw"></i></div><div style="min-width:100px;max-width:150%;width:20%">Categories</div></div></a><a href="/tags"><div class="item"><div style="min-width:20px;max-width:50px;width:10%"><i class="fa-solid fa-tags fa-fw"></i></div><div style="min-width:100px;max-width:150%;width:20%">Tags</div></div></a></div></transition></nav></div><transition name="fade"><div id="menu-curtain" @click="showMenuItems = !showMenuItems" v-show="showMenuItems"></div></transition><div id="main" :class="loading ? 'into-enter-from': 'into-enter-active'"><div class="article"><div><h1>拆解城市天际线2代：Unity模拟经营游戏背后的 ECS 架构</h1></div><div class="info"><span class="date"><span class="icon"><i class="fa-solid fa-calendar fa-fw"></i> </span>2026/5/6 </span><span class="category"><a href="/categories/GameDev/"><span class="icon"><i class="fa-solid fa-bookmark fa-fw"></i> </span>GameDev </a></span><span class="tags"><span class="icon"><i class="fa-solid fa-tags fa-fw"></i> </span><span class="tag"><a href="/tags/Unity/" style="color:#03a9f4">Unity </a></span><span class="tag"><a href="/tags/ECS/" style="color:#00bcd4">ECS</a></span></span><br><span id="busuanzi_container_page_pv" style="color:#aaa"><i class="fa-solid fa-paperclip"></i> 本文总阅读量<span id="busuanzi_value_page_pv"></span>次</span></div><toc-component></toc-component><div class="content" v-pre id="main-content"><blockquote><p>通过反编译，探寻天际线2代的 CPU/GPU 协作的 ECS 架构</p></blockquote><span id="more"></span><h2><span id="起因">起因</span></h2><p>在游戏里造水力发电站的时候，一直遇到问题，要么效率1%发电慢的出奇，要么效率始终跑不满，花了几个小时修也没修好，索性看源码看看他到底咋实现的逻辑。</p><p>于是我把游戏程序集 <code>Game.dll</code> 扔进了 dnSpy，借助 <strong><a target="_blank" rel="noopener" href="https://github.com/pjmagee/dnspy-mcp">dnSpy MCP Server</a> + Claude Code Opus 4.6</strong>（AI做这些确实快，两个小时完成一两天的工作量），从一座水力发电站追出了一整套 CPU/GPU 协作的 ECS 架构。本文就以这条线索为主线来串讲。</p><hr><h2><span id="什么是ecs先从传统架构的痛点说起">什么是 ECS？先从传统架构的痛点说起</span></h2><h3><span id="传统-oop-游戏架构的问题">传统 OOP 游戏架构的问题</span></h3><p>传统 Unity 游戏用 MonoBehaviour 挂脚本，一个"水力发电站"可能长这样：</p><pre class="csharp"><code>class HydroPowerPlant : MonoBehaviour &#123;
+    float capacity;
+    float production;
+    Efficiency efficiency;
+    void Update() &#123; /* 每帧算发电量 */ &#125;
+&#125;</code></pre><p>看着挺直观，但规模一大就崩了：</p><ul><li><strong>内存碎片化</strong>：每个对象散落在堆上，遍历 1000 个发电站时 Cache 疯狂 miss</li><li><strong>无法并行</strong>：<code>Update()</code> 里既读又写，没法安全地丢给多个线程</li><li><strong>继承地狱</strong>：<code>HydroPowerPlant</code> 继承 <code>PowerPlant</code> 继承 <code>Building</code> 继承...改一个基类全爆炸</li></ul><h3><span id="ecs-的思路拆成数据和行为">ECS 的思路：拆成数据和行为</span></h3><p>ECS（Entity-Component-System）把游戏对象拆成三块：</p><pre class="mermaid"><code>graph LR
+    subgraph Entity[&quot;Entity (实体)&quot;]
+        E[&quot;只是一个 ID&lt;br/&gt;比如: Entity #4396&quot;]
+    end
+    
+    subgraph Component[&quot;Component (组件 = 纯数据)&quot;]
+        C1[&quot;WaterPowered&lt;br/&gt;&#123;Length, Height, Estimate&#125;&quot;]
+        C2[&quot;ElectricityProducer&lt;br/&gt;&#123;Capacity, LastProduction&#125;&quot;]
+        C3[&quot;Transform&lt;br/&gt;&#123;Position, Rotation&#125;&quot;]
+    end
+    
+    subgraph System[&quot;System (系统 = 纯行为)&quot;]
+        S[&quot;PowerPlantAISystem&lt;br/&gt;遍历所有有 ElectricityProducer&lt;br/&gt;+ WaterPowered 的实体&lt;br/&gt;计算发电量&quot;]
+    end
+    
+    Entity --&gt; Component
+    System --&gt;|批量处理| Component</code></pre><ul><li><strong>Entity</strong>：就是个 ID，没有逻辑</li><li><strong>Component</strong>：纯数据结构体，没有方法（<code>struct</code>，不是 <code>class</code>）</li><li><strong>System</strong>：纯逻辑，不持有状态，批量操作符合条件的实体</li></ul><h3><span id="为什么这样更快">为什么这样更快？</span></h3><p>关键在<strong>内存布局</strong>。ECS 把同类型的 Component 紧密排列（Structure of Arrays）：</p><pre><code>传统 OOP（Array of Structures）：
+[对象A的全部字段] [对象B的全部字段] [对象C的全部字段] ...
+     ↕ Cache line 可能只装得下一个对象
+
+ECS（Structure of Arrays）：
+[A.Capacity][B.Capacity][C.Capacity][D.Capacity]...  ← 连续！一条 Cache line 装几十个
+[A.Position][B.Position][C.Position][D.Position]...  ← 连续！</code></pre><p>遍历 1000 个发电站的 Capacity 时，数据全在相邻内存里，CPU 预取直接命中。实测性能差距可以是 10 倍以上。</p><h3><span id="unity-dotsecs-burst-jobsystem">Unity DOTS：ECS + Burst + Job System</span></h3><p>天际线2 用的是 Unity 的 DOTS 技术栈，三件套配合使用：</p><pre class="mermaid"><code>graph LR
+    subgraph DOTS[&quot;Unity DOTS 三件套&quot;]
+        ECS[&quot;ECS&lt;br/&gt;数据布局 + 实体查询&lt;br/&gt;决定&#39;数据怎么摆&#39;&quot;]
+        Burst[&quot;Burst Compiler&lt;br/&gt;C# → 原生机器码&lt;br/&gt;决定&#39;单核跑多快&#39;&quot;]
+        Jobs[&quot;Job System&lt;br/&gt;多线程调度&lt;br/&gt;决定&#39;用几个核跑&#39;&quot;]
+    end
+    ECS --&gt;|SoA 布局，Cache 友好| Burst
+    Burst --&gt;|编译后的 Job| Jobs
+    Jobs --&gt;|并行执行| Result[&quot;多核 + SIMD&lt;br/&gt;榨干 CPU&quot;]</code></pre><h4><span id="burst把-c变成接近手写汇编的东西">Burst：把 C# 变成接近手写汇编的东西</span></h4><p>普通 C# 跑在 Mono/IL2CPP 上，有 GC、有边界检查、有虚调用开销。Burst 是另一条编译路径——它把标记了 <code>[BurstCompile]</code> 的结构体直接编译成 LLVM IR，再生成针对当前 CPU 架构优化的原生代码。</p><p>实际效果：</p><pre class="csharp"><code>[BurstCompile]
+struct MyJob : IJobParallelFor &#123;
+    [ReadOnly] public NativeArray&lt;float&gt; depths;
+    [ReadOnly] public NativeArray&lt;float2&gt; velocities;
+    public NativeArray&lt;float&gt; results;
+    
+    public void Execute(int i) &#123;
+        // 这段代码会被 Burst 编译成 SIMD 指令
+        // 比如 4 个 float 的乘法会变成一条 SSE/AVX 指令
+        results[i] = depths[i] * math.length(velocities[i]);
+    &#125;
+&#125;</code></pre><p>编译出来的代码，循环里对 float/float4 的操作会变成 SSE4/AVX2 指令（一条指令处理 4 ~ 8 个数据），Job 里只允许值类型和 NativeArray 所以没有堆分配也没有 GC 暂停，编译器能证明安全的地方会去掉数组边界检查，LLVM 后端再做一轮寄存器分配和循环展开。最终跑出来的东西跟手写 C++ 没太大差别。</p><h4><span id="job-system声明式的多线程">Job System：声明式的多线程</span></h4><p>传统多线程要手动管线程、加锁、防死锁。Unity Job System 换了个思路——<strong>你不管线程，你只声明"我读什么、写什么"</strong>：</p><pre class="csharp"><code>[BurstCompile]
+struct PowerPlantTickJob : IJobChunk &#123;
+    // 声明：我要读这些
+    [ReadOnly] public ComponentTypeHandle&lt;Transform&gt; m_TransformType;
+    [ReadOnly] public ComponentTypeHandle&lt;WaterPowered&gt; m_WaterPoweredType;
+    
+    // 声明：我要写这个
+    public ComponentTypeHandle&lt;ElectricityProducer&gt; m_ProducerType;
+    
+    public void Execute(in ArchetypeChunk chunk, ...) &#123;
+        // 处理一个 Chunk 里的所有实体
+    &#125;
+&#125;</code></pre><p>运行时 Job System 拿到这些声明后就能自动做调度了——两个 Job 都只读 Transform？并行跑，没问题。都要写 ElectricityProducer？自动排队等前一个写完。一个 Job 还没跑完，另一个依赖它的结果？通过 <code>JobHandle</code> 链自动等。</p><p>开发者不写一行锁代码，不操心线程池大小。整个天际线2 的 478 个 System 就是这样在每帧里被自动调度到所有 CPU 核心上的。</p><h4><span id="三件套如何配合">三件套如何配合</span></h4><pre class="mermaid"><code>sequenceDiagram
+    participant Main as 主线程
+    participant JS as Job System 调度器
+    participant W1 as Worker Thread 1
+    participant W2 as Worker Thread 2
+    participant W3 as Worker Thread 3
+    
+    Main-&gt;&gt;JS: Schedule(PowerPlantTickJob)&lt;br/&gt;[ReadOnly] Water, [RW] Producer
+    Main-&gt;&gt;JS: Schedule(WindTurbineJob)&lt;br/&gt;[ReadOnly] Wind, [RW] Producer
+    Note over JS: 两个都写 Producer → 不能并行
+    JS-&gt;&gt;W1: PowerPlantTickJob - Chunk 0
+    JS-&gt;&gt;W2: PowerPlantTickJob - Chunk 1
+    JS-&gt;&gt;W3: PowerPlantTickJob - Chunk 2
+    Note over W1,W3: 同一个 Job 的不同 Chunk 可以并行！
+    W1--&gt;&gt;JS: 完成
+    W2--&gt;&gt;JS: 完成
+    W3--&gt;&gt;JS: 完成
+    JS-&gt;&gt;W1: WindTurbineJob - Chunk 0
+    JS-&gt;&gt;W2: WindTurbineJob - Chunk 1
+    Note over W1,W2: 前一个 Job 全完成后才开始下一个</code></pre><p>看这个时序图，同一个 Job 的不同 Chunk 天然可以并行（每个 Chunk 是独立的内存块，不存在冲突），而不同 Job 之间由调度器根据读写声明自动排序。再加上 Burst 编译让每个线程跑得尽可能快（SIMD + 无 GC + 无边界检查），整条管线就是这么协作的。</p><p>这就是天际线2能在 478 个 System、十万级实体下保持可玩帧率的核心原因。后面会看到具体的水力发电系统是怎么利用这套机制的。</p><hr><h2><span id="天际线2-的整体架构">天际线2 的整体架构</span></h2><h3><span id="自定义更新循环">自定义更新循环</span></h3><p>天际线2没有用 Unity 自带的 <code>SimulationSystemGroup</code>，而是自己写了个 <code>UpdateSystem</code>，把一帧切成 34 个阶段：</p><pre class="csharp"><code>enum SystemUpdatePhase &#123;
+    MainLoop,           // 主循环
+    Modification1~5,    // 玩家操作（放建筑、修路等）
+    PreSimulation,      // 模拟前准备
+    GameSimulation,     // 核心模拟（CPU Jobs 跑这里）
+    PostSimulation,     // 模拟后处理
+    Rendering,          // GPU 渲染 + GPU 物理模拟
+    UIUpdate,           // UI
+    UITooltip,          // Tooltip
+    // ... 共34个
+&#125;</code></pre><p>阶段之间严格顺序，阶段内部的 System 通过 JobHandle 依赖链并行。这样就能精确控制"什么时候 GPU 在算水流，什么时候 CPU 在算发电量"。</p><h3><span id="ecs-在天际线2里的分层">ECS 在天际线2里的分层</span></h3><p>天际线2把整个游戏拆成四层。先看通用架构，后面再用水力发电做具体案例：</p><pre class="mermaid"><code>graph TB
+    subgraph Prefab层[&quot;Prefab 层 — 只读的&#39;蓝图&#39;配置&quot;]
+        direction LR
+        P1[&quot;建筑类型定义&lt;br/&gt;(最大产能、建造费用、占地...)&quot;]
+        P2[&quot;道路类型定义&lt;br/&gt;(车道数、限速、宽度...)&quot;]
+        P3[&quot;市民类型定义&lt;br/&gt;(消费习惯、教育需求...)&quot;]
+    end
+    
+    subgraph Runtime层[&quot;Runtime Component 层 — 每个实例身上挂的数据&quot;]
+        direction LR
+        R1[&quot;建筑实例状态&lt;br/&gt;(当前产能、效率、员工数...)&quot;]
+        R2[&quot;道路实例状态&lt;br/&gt;(车流量、拥堵度...)&quot;]
+        R3[&quot;市民实例状态&lt;br/&gt;(年龄、幸福度、工作地...)&quot;]
+    end
+    
+    subgraph System层[&quot;System 层 — 478个系统，各管各的逻辑&quot;]
+        subgraph CPU[&quot;CPU Systems — Burst编译，多核并行&quot;]
+            S1[发电AI]
+            S2[交通AI]
+            S3[经济模拟]
+            S4[人口模拟]
+        end
+        subgraph GPU[&quot;GPU Systems — ComputeShader&quot;]
+            G1[水流模拟]
+            G2[风场模拟]
+        end
+    end
+    
+    subgraph Bridge[&quot;桥接层 — CPU和GPU之间搬运数据&quot;]
+        B1[AsyncGPUReadback&lt;br/&gt;GPU结果回传CPU]
+    end
+    
+    GPU --&gt; Bridge --&gt; CPU
+    CPU --&gt;|读写| Runtime层
+    Prefab层 -.-&gt;|查询配置| CPU</code></pre><p>解释一下每层的职责：</p><ul><li><strong>Prefab 层</strong>：游戏物体的"模板"。比如"小型水力发电站"的 Prefab 定义了它的 ProductionFactor 是多少、占多大地——所有同类型建筑共享这份配置，只读</li><li><strong>Runtime Component 层</strong>：每个<strong>实例</strong>各自的状态。你在地图上放了 3 座水力发电站，就有 3 份独立的运行时数据（各自的发电量、效率、坝体尺寸等）</li><li><strong>System 层</strong>：纯逻辑，不持有任何状态。<code>PowerPlantAISystem</code> 每次 tick 会遍历所有带有"发电站"相关 Component 的实体，批量计算它们的发电量。CPU 和 GPU 各有一批 System</li><li><strong>桥接层</strong>：GPU 上算出的水面数据要传回 CPU 给发电 AI 用，这中间需要一层异步搬运</li></ul><p>整个 <code>Game.Simulation</code> 命名空间下有 <strong>478 个 System</strong>，涵盖交通、经济、电力、供水、垃圾、天气、犯罪...几乎城市中每个系统都是一个独立的 System。它们通过 ECS 的查询机制各取所需，互不干扰。</p><p>下面我们顺着水力发电这条线，看看这四层是怎么具体协作的。</p><hr><h2><span id="gpu-层水流模拟">GPU 层：水流模拟</span></h2><h3><span id="浅水方程-computeshader">浅水方程 ComputeShader</span></h3><p>水流模拟全跑在 GPU 上，因为这活儿完美适合 GPU：规则网格、大规模并行、每帧都要算、几乎没有分支逻辑。</p><p>每帧的模拟流水线：</p><pre class="mermaid"><code>graph LR
+    A[SourceStep&lt;br/&gt;水源注入] --&gt; B[VelocityStep&lt;br/&gt;速度场更新]
+    B --&gt; C[DepthStep&lt;br/&gt;水深更新]
+    C --&gt; D[EvaporateStep&lt;br/&gt;蒸发]
+    D --&gt; E[MaxHeightStep&lt;br/&gt;记录最高水位]
+    E --&gt; F[FlowPostProcess&lt;br/&gt;流场后处理]</code></pre><p>核心是 <code>VelocityStep</code>——浅水方程的 GPU 求解。反编译出来是这样的：</p><pre class="csharp"><code>public void VelocityStep(CommandBuffer cmd) &#123;
+    // 地形高度图
+    cmd.SetComputeTextureParam(..., m_Terrain, terrainSystem.GetCascadeTexture());
+    // 物理参数
+    cmd.SetComputeFloatParam(..., m_ID_Fluidness, this.Fluidness);
+    cmd.SetComputeFloatParam(..., m_ID_Damping, this.Damping);
+    cmd.SetComputeFloatParam(..., m_ID_WindVelocityScale, this.WindVelocityScale);
+    // 双缓冲：读上一帧，写新帧
+    cmd.SetComputeTextureParam(..., m_ID_Previous, WaterTexture);
+    cmd.SetComputeTextureParam(..., m_ID_Result, WaterRenderTexture);
+    // 只对有水的区块 dispatch（稀疏计算）
+    cmd.SetComputeBufferParam(..., m_ID_CurrentActiveIndices,
+        ActiveTilesHelper.GetActiveTilesIndices());
+    cmd.DispatchCompute(...);
+&#125;</code></pre><p>注意它用了双缓冲（Previous → Result，避免同一 texture 的读写竞争），并且只对有水的 Active Tiles dispatch 计算——典型地图水域占 10 ~ 20%，这一招直接省掉 80% 的 GPU 开销。另外 <code>WindVelocityScale</code> 参数让风力也能推动水面流动。</p><h3><span id="水源怎么工作">水源怎么工作</span></h3><pre class="csharp"><code>public void SourceStep(CommandBuffer cmd, NativeList&lt;WaterSourceCache&gt; sources) &#123;
+    foreach (var source in sources) &#123;
+        if (source.m_Polluted &gt; 0) &#123;
+            // 污水：直接添加水量
+            cmd.DispatchCompute(..., m_AddKernel, ...);
+        &#125; else &#123;
+            // 清洁水源：维持目标水面高度
+            cmd.DispatchCompute(..., m_AddConstantKernel, ...);
+        &#125;
+    &#125;
+&#125;</code></pre><p>河流源头不是"注入流速"，而是<strong>持续维持一个目标水面高度</strong>。高度差产生势能，势能驱动流速——浅水方程自己会搞定后面的事。这个设计非常优雅：开发者只需要在地图上摆水源并指定高度，河流就自动形成了。</p><h3><span id="水面数据结构">水面数据结构</span></h3><p>GPU 端每个网格像素存一个 <code>float4</code>，CPU 侧有对应的镜像结构：</p><pre class="csharp"><code>struct SurfaceWater &#123;
+    float m_Depth;      // 水深（水面到地形的距离）
+    float m_Polluted;   // 污染浓度
+    float2 m_Velocity;  // 水平流速向量 (vx, vz)
+&#125;</code></pre><hr><h2><span id="cpu-︎-gpu-桥接">CPU ↔︎ GPU 桥接</span></h2><p>GPU 算完的水面数据要传回 CPU 给发电站用。这里用了 <code>AsyncGPUReadback</code>——异步回读，不阻塞渲染管线：</p><pre class="mermaid"><code>sequenceDiagram
+    participant GPU
+    participant Bridge as SurfaceDataReader
+    participant CPU as PowerPlantAISystem
+
+    GPU-&gt;&gt;GPU: 每帧: VelocityStep + DepthStep
+    GPU-&gt;&gt;Bridge: AsyncGPUReadback (降采样版)
+    Note over Bridge: 延迟 2~3 帧到达
+    Bridge-&gt;&gt;CPU: NativeArray of SurfaceWater 就绪
+    CPU-&gt;&gt;CPU: 每128帧: GetWaterProduction()
+    Note over CPU: 用&quot;过时&quot;几帧的数据完全够用</code></pre><p>GPU 模拟分辨率很高，但回传给 CPU 的是降采样版本（省 PCIe 带宽）。数据有 2 ~ 3 帧延迟，不过发电站 128 帧才 tick 一次，这点延迟完全无所谓。CPU 采样时用双线性插值避免锯齿：</p><pre class="csharp"><code>public static float SampleDepth(ref WaterSurfaceData&lt;SurfaceWater&gt; data, float3 worldPos) &#123;
+    float2 gridPos = ToSurfaceSpace(ref data, worldPos).xz;
+    // 取四个最近网格点的水深值，双线性插值
+    int4 corners = clamp(floor/ceil(gridPos), 0, resolution - 1);
+    float4 depths = sample_four_corners(data.depths, corners);
+    float2 t = frac(gridPos);
+    return bilinear_lerp(depths, t);
+&#125;</code></pre><hr><h2><span id="cpu-层水力发电的实时计算">CPU 层：水力发电的实时计算</span></h2><h3><span id="powerplantaisystem-概览">PowerPlantAISystem 概览</span></h3><p>这是个标准的 ECS System：用 Burst 编译的 <code>IJobChunk</code>，每 128 帧 tick 一次，跨多核并行处理所有发电站：</p><pre class="csharp"><code>public override int GetUpdateInterval(SystemUpdatePhase phase) =&gt; 128;</code></pre><p>128 帧大约对应游戏内几秒。发电量变化本来就不快，没必要每帧都算。</p><h3><span id="核心算法getwaterproduction">核心算法：GetWaterProduction</span></h3><p>这是从反编译代码中还原出的完整发电量计算。<strong>每次 tick 都从 GPU 回传的水面数据重新计算，不依赖放置时的缓存值</strong>：</p><pre class="csharp"><code>private float GetWaterProduction(WaterPoweredData waterData, Curve curve, 
+    PlaceableNetData placeableData, NetCompositionData compositionData, 
+    TerrainHeightData terrainHeightData, WaterSurfaceData&lt;SurfaceWater&gt; waterSurfaceData)
+&#123;
+    // 采样密度：保证每个水面网格格子至少一个采样点
+    int numSamples = max(1, round(curve.m_Length * waterSurfaceData.scale.x));
+    bool flowLeft = (placeableData.m_PlacementFlags &amp; FlowLeft) != 0;
+    
+    float totalProduction = 0;
+    for (int i = 0; i &lt; numSamples; i++) &#123;
+        float t = (i + 0.5f) / numSamples;
+        
+        // 沿坝体 Bezier 曲线取点，算法线方向
+        float3 pos = BezierPosition(curve, t);
+        float2 normal = perpendicular(BezierTangent(curve, t).xz);
+        
+        // 坝体两侧各取一个采样点
+        float3 upstream   = pos - normal * (width / 2);
+        float3 downstream = pos + normal * (width / 2);
+        
+        // 从 GPU 回读的数据中采样水面信息
+        float h_up   = SampleHeight(upstream,   out float depth_up);
+        float h_down = SampleHeight(downstream, out float depth_down);
+        float2 v_up   = SampleVelocity(upstream);
+        float2 v_down = SampleVelocity(downstream);
+        
+        // 上游水面超过坝顶 → 截断（溢流坝模型）
+        if (h_up &gt; dam_elevation) &#123;
+            depth_up = max(0, depth_up - (h_up - dam_elevation));
+            h_up = dam_elevation;
+        &#125;
+        
+        // 核心公式：平均流量 × 水头差
+        totalProduction += (dot(v_up, normal) * depth_up 
+                         + dot(v_down, normal) * depth_down) 
+                         * 0.5f 
+                         * max(0, h_up - h_down);
+    &#125;
+    return totalProduction * waterData.m_ProductionFactor * curve.m_Length / numSamples;
+&#125;</code></pre><h3><span id="物理模型">物理模型</span></h3><p>本质上是离散化的水力发电功率公式。经典水力学中：</p><p><span class="math display">\[P = \rho g Q H\]</span></p><p>天际线2里的离散实现：</p><p><span class="math display">\[P = \sum_{i=1}^{N} \left[ \frac{(\vec{v}_{up} \cdot \hat{n}) \cdot d_{up} + (\vec{v}_{down} \cdot \hat{n}) \cdot d_{down}}{2} \right] \cdot \max(0,\ h_{up} - h_{down}) \cdot \frac{L}{N} \cdot k\]</span></p><p>其中：</p><ul><li><span class="math inline">\(\vec{v} \cdot \hat{n}\)</span> — 流速在坝体法线方向的分量（只有垂直穿过坝体的水流才发电）</li><li><span class="math inline">\(d\)</span> — 水深（有效过流断面）</li><li><span class="math inline">\(h_{up} - h_{down}\)</span> — 水头差（上游水面高度 vs 下游水面高度）</li><li><span class="math inline">\(L / N\)</span> — 每个采样段的坝体长度</li><li><span class="math inline">\(k\)</span> — <code>ProductionFactor</code>，把物理量转换成游戏内的电力单位</li></ul><pre class="mermaid"><code>graph LR
+    subgraph 每个采样点的计算
+        V[&quot;法向流速&lt;br/&gt;dot(v, n)&quot;] --&gt;|乘以| D[&quot;水深 depth&quot;]
+        D --&gt;|得到| Q[&quot;局部流量 Q&quot;]
+        Q --&gt;|乘以| H[&quot;水头差&lt;br/&gt;h_up - h_down&quot;]
+        H --&gt;|得到| P[&quot;局部发电贡献&quot;]
+    end
+    P --&gt;|沿坝体积分| SUM[&quot;总发电量&quot;]
+    SUM --&gt;|× ProductionFactor × L| FINAL[&quot;最终 Capacity&quot;]</code></pre><hr><h2><span id="cpugpu-完整协作流">CPU/GPU 完整协作流</span></h2><pre class="mermaid"><code>flowchart LR
+    subgraph GPU[&quot;GPU — 每帧执行&quot;]
+        WS[WaterSimulation&lt;br/&gt;ComputeShader&lt;br/&gt;浅水方程] --&gt; RT[(WaterTexture&lt;br/&gt;RenderTexture&lt;br/&gt;float4 per pixel)]
+    end
+    
+    RT --&gt;|&quot;AsyncGPUReadback&lt;br/&gt;降采样，延迟数帧&quot;| NA[(&quot;NativeArray(SurfaceWater)&lt;br/&gt;CPU 可读&quot;)]
+    
+    subgraph CPU[&quot;CPU — 每128帧执行&quot;]
+        NA --&gt; PP[&quot;PowerPlantAISystem&lt;br/&gt;GetWaterProduction()&lt;br/&gt;沿坝体采样，算 Q×H&quot;]
+        PP --&gt; EP[&quot;ElectricityProducer&lt;br/&gt;写入 .m_Capacity&quot;]
+        EP --&gt; EF[&quot;ElectricityFlowSystem&lt;br/&gt;电网图论求解&lt;br/&gt;分配实际供电&quot;]
+    end</code></pre><h3><span id="job-依赖链">Job 依赖链</span></h3><pre class="csharp"><code>// PowerPlantAISystem.OnUpdate()
+JobHandle waterHandle;
+var waterData = m_WaterSystem.GetVelocitiesSurfaceData(out waterHandle);
+
+// 合并所有数据源的依赖
+Dependency = tickJob.ScheduleParallel(m_PowerPlantQuery, 
+    JobUtils.CombineDependencies(Dependency, windHandle, waterHandle, groundWaterHandle));
+
+// 告诉 WaterSystem &quot;我在读你的数据，别覆盖&quot;
+m_WaterSystem.AddVelocitySurfaceReader(Dependency);</code></pre><p>声明依赖、调度并行、注册为 Reader，Job System 就自动处理并发安全了，不用手写锁。</p><h3><span id="为什么发电量不放-gpu-算">为什么发电量不放 GPU 算？</span></h3><p>乍一看水面数据本来就在 GPU 上，何必回传再算？</p><table><thead><tr><th></th><th>GPU 算</th><th>CPU 算 (现行方案)</th></tr></thead><tbody><tr><td>水面数据</td><td>天然就在</td><td>要 Readback</td></tr><tr><td>坝体几何</td><td>要从 ECS 上传 Bezier 曲线</td><td>天然可用</td></tr><tr><td>结果去向</td><td>算完还得传回 CPU 给电网</td><td>直接写 ECS 组件</td></tr><tr><td>频率</td><td>每帧都跑，其实没必要</td><td>128帧一次</td></tr><tr><td>逻辑</td><td>循环+分支，GPU 不擅长</td><td>CPU 的强项</td></tr></tbody></table><p>规则网格的大规模并行丢 GPU，不规则几何+低频+多系统交互的逻辑留 CPU。各干各擅长的活。</p><hr><h2><span id="性能优化手段">性能优化手段</span></h2><h3><span id="分频更新">分频更新</span></h3><p>不同系统用不同 tick 间隔，把 CPU 负载在时间上打散：</p><pre class="csharp"><code>PowerPlantAISystem  → 每128帧
+// 交通AI         → 大概每16帧
+// 人口统计       → 大概每256帧</code></pre><p>不会出现"所有系统在同一帧同时算"的峰值卡顿。</p><h3><span id="active-tiles-稀疏计算">Active Tiles 稀疏计算</span></h3><pre class="csharp"><code>if (ActiveTilesHelper.numThreadGroupsTotal &gt; 0) &#123;
+    cmd.DispatchCompute(...);
+&#125;</code></pre><p>地图上大部分是陆地，只有有水的区块才参与 GPU 计算。典型地图能省掉 80%+ GPU 开销。</p><h3><span id="chunk-级并行-内存连续">Chunk 级并行 + 内存连续</span></h3><pre class="mermaid"><code>graph TB
+    subgraph ECS内存布局[&quot;ECS Chunk 内存布局 (Structure of Arrays)&quot;]
+        C0[&quot;Chunk 0: [电站A.Capacity][电站B.Capacity][电站C.Capacity]&lt;br/&gt;连续内存，一条 Cache Line 全命中&quot;] --&gt; T0[Worker Thread 0]
+        C1[&quot;Chunk 1: [电站D.Capacity][电站E.Capacity][电站F.Capacity]&lt;br/&gt;连续内存&quot;] --&gt; T1[Worker Thread 1]
+        C2[&quot;Chunk 2: [电站G.Capacity][电站H.Capacity]&lt;br/&gt;连续内存&quot;] --&gt; T2[Worker Thread 2]
+    end</code></pre><p>同 Chunk 的同类型数据在内存中紧密排列。遍历时 CPU 预取直接命中，再加上 Burst 自动向量化（SIMD），性能拉满。</p><h3><span id="读写声明-自动并行">读写声明 → 自动并行</span></h3><pre class="csharp"><code>// 大量只读 → 多个 Job 可同时读
+[ReadOnly] ComponentTypeHandle&lt;PrefabRef&gt; m_PrefabType;
+[ReadOnly] WaterSurfaceData&lt;SurfaceWater&gt; m_WaterSurfaceData;
+
+// 少量读写 → 独占访问
+ComponentTypeHandle&lt;ElectricityProducer&gt; m_ElectricityProducerType;
+BufferTypeHandle&lt;Efficiency&gt; m_EfficiencyType;</code></pre><p>Job System 看到两个 Job 都只读同一份数据，自动判定可以并行；有一个要写，就串行等着。开发者不用管锁、不用管竞争。</p><hr><h2><span id="效率因子系统">效率因子系统</span></h2><p>每个建筑身上挂着一串效率因子，相乘得到总效率：</p><pre class="csharp"><code>enum EfficiencyFactor : byte &#123;
+    Destroyed, Abandoned, Disabled, Fire,       // 建筑状态
+    ServiceBudget, NotEnoughEmployees,           // 管理因素
+    ElectricitySupply, WaterSupply,             // 基础设施
+    WindSpeed, WaterDepth, SunIntensity,        // 自然资源
+    // ... 共33个
+&#125;</code></pre><p>总效率的计算：</p><p><span class="math display">\[\eta = \prod_{i=0}^{32} \max(0,\ f_i)\]</span></p><p>某个因子为 0 就整体为 0（比如着火了），任何一个拉低都拖累整体。</p><p>不同 System 各管各的因子：</p><pre class="mermaid"><code>graph LR
+    PPS[PowerPlantAISystem] --&gt;|&quot;WindSpeed&lt;br/&gt;WaterDepth&lt;br/&gt;SunIntensity&quot;| BUF[/&quot;Efficiency Buffer&lt;br/&gt;(DynamicBuffer)&quot;\]
+    BES[BuildingEfficiencySystem] --&gt;|&quot;ElectricitySupply&lt;br/&gt;WaterSupply&quot;| BUF
+    CSES[CityServiceEfficiencySystem] --&gt;|&quot;ServiceBudget&lt;br/&gt;NotEnoughEmployees&quot;| BUF
+    BSES[BuildingStateEfficiencySystem] --&gt;|&quot;Destroyed&lt;br/&gt;Fire, Abandoned&quot;| BUF</code></pre><p>通过 Update Phase 的顺序保证不会有两个 System 同时写同一个 Buffer。这比加锁优雅得多——架构设计上就避免了竞争。</p><hr><h2><span id="回到最初的问题">回到最初的问题</span></h2><p>现在可以从代码层面解释开头那些游戏现象了。</p><h3><span id="水面必须齐平大坝">水面必须齐平大坝</span></h3><p><span class="math display">\[P \propto (\vec{v} \cdot \hat{n}) \times d \times (h_{up} - h_{down})\]</span></p><p>水面低于坝顶 → 水被坝体挡住 → GPU 浅水方程算出该处流速为零 → 整个乘积为零。不是程序写了个 if 判断，是物理模拟的自然结果。</p><h3><span id="下游挖深有用">下游挖深有用</span></h3><p><span class="math display">\[\Delta h = h_{up} - h_{down}\]</span></p><p>下游地面低 → 水面跟着低 → <span class="math inline">\(\Delta h\)</span> 大 → 发电量线性增加。</p><h3><span id="上游挖深保持水面不变有用">上游挖深（保持水面不变）有用</span></h3><p>浅水方程里，流速由<strong>水面坡度</strong>驱动：</p><p><span class="math display">\[\frac{\partial v}{\partial t} \propto -g \frac{\partial h_{surface}}{\partial x}\]</span></p><p>挖深地形但水面不变：</p><ul><li>坡度不变 → 流速基本不变</li><li><span class="math inline">\(d = h_{surface} - h_{terrain}\)</span> → 水深变大了</li><li><span class="math inline">\(v \times d\)</span> 增大 → 有效流量增大 → 发电增加</li></ul><p>而且浅水方程中底部摩擦 <span class="math inline">\(\sim v / d\)</span>，水越深摩擦越小，流速甚至会略微增加。</p><h3><span id="挖浅加速没用">挖浅加速没用</span></h3><p>反过来，挖浅：</p><ul><li>水面坡度不变 → 驱动力不变 → 流速不会等比增加</li><li><span class="math inline">\(d\)</span> 减小</li><li><span class="math inline">\(v \times d\)</span> 反而更小了</li></ul><p>直觉上"水浅流急"是对的，但发电公式里要的是 <span class="math inline">\(v \times d\)</span>（流量），而不单纯是 <span class="math inline">\(v\)</span>（流速）。</p><hr><h2><span id="写在最后">写在最后</span></h2><p>ECS 这套东西刚接触的时候会觉得很别扭——数据和逻辑硬拆开，写个简单功能都比 OOP 啰嗦。但从天际线2和其他的实际工程来看，这种"别扭"换来的东西是值得的：</p><p>传统 OOP 里一个对象的字段散落在堆上，原来遍历一万个对象其实是在内存里随机跳。而ECS 的 SoA 布局让同类型数据紧密排列，CPU的一条 Cache Line 可以装几十个实体的同一字段，CPU 预取直接命中。</p><p>传统多线程里你要操心锁、操心竞争、操心死锁。ECS + Job System 的做法是让你声明"我读什么写什么"，剩下的调度器全包了。写代码的人脑子里不需要有"线程"这个概念，只需要想清楚数据流向。</p><p>Burst 证明只要你愿意接受约束（无 GC、无虚调用、值类型），C# 编译出来的东西也能逼近手写汇编。约束本身就是优化的前提——你不能分配堆内存，所以没有 GC 暂停；你只能用值类型，所以内存局部性天然好。</p><p>规则网格上的大规模并行（水流、风场）扔 GPU，不规则几何+复杂分支+多系统交互的逻辑留 CPU，中间用异步回读桥接，容忍几帧延迟。不是什么都要实时，不是什么都要精确——想清楚每个计算的频率需求和数据依赖，就能找到合理的 CPU/GPU 分工。</p><p>这套架构当然也有代价：开发门槛高、调试困难、不适合快速原型。但对于天际线2这种模拟游戏来说，这是目前能落地的最好方案之一。</p><hr><p><em>基于 Cities: Skylines II <code>Game.dll</code> 逆向分析，使用 dnSpy MCP + Claude Code 完成。仅用于技术学习。</em></p><link rel="stylesheet" href="/css/spoiler.css"><script src="/js/spoiler.js" async></script></div><div id="comment"><blockquote><p>本站不开放评论区，如有讨论内容请移步至<a target="_blank" rel="noopener" href="https://github.com/ChaomengOrion/chaomengorion.github.io/discussions">本站Github讨论区</a></p></blockquote></div></div><footer id="footer"><div id="footer-wrap"><div><i class="fa-solid fa-paperclip"></i> <span id="busuanzi_container_site_pv">本站总访问量<span id="busuanzi_value_site_pv"></span>次</span> &emsp; <i class="fa-solid fa-circle-user"></i> <span id="busuanzi_container_site_uv">总访客数<span id="busuanzi_value_site_uv"></span>人</span></div><div>&copy; 2024 - 2026 Chaomeng&#39;s Blog <span id="footer-icon"><i class="fa-solid fa-font-awesome fa-fw"></i> </span>&commat;ChaomengOrion</div><div>Based on the <a target="_blank" rel="noopener" href="https://hexo.io">Hexo Engine</a> &amp; <a target="_blank" rel="noopener" href="https://github.com/theme-particlex/hexo-theme-particlex">ParticleX Theme</a> &emsp; Adopted CC 4.0 BY-SA license</div><div><a target="_blank" rel="noopener" href="https://beian.miit.gov.cn/">粤ICP备2024346855号-1</a> &emsp; <img src="/images/gongan.png" width="14" alt="公安备案图标"> <a href="https://beian.mps.gov.cn/#/query/webSearch?code=44030002005405" rel="noreferrer" target="_blank">粤公网安备44030002005405号</a></div></div></footer></div><transition name="fade"><div id="preview" ref="preview" v-show="previewShow"><img id="preview-content" ref="previewContent"></div></transition></div><script src="/js/main.js"></script><div id="space-particles" aria-hidden="true"><span class="meteor meteor-1"></span> <span class="meteor meteor-2"></span></div><script>(()=>{let e=["https://s4.zstatic.net/ajax/libs/particles.js/2.0.0/particles.min.js","/js/lib/space-particles.js"];function t(){e.reduce((e,t)=>e.then(()=>{return n=t,new Promise(e=>{let t=document.createElement("script"),o=window.setTimeout(()=>{t.remove(),e()},8e3);t.src=n,t.async=!1,t.onload=t.onerror=()=>{window.clearTimeout(o),e()},document.body.appendChild(t)});var n}),Promise.resolve())}"complete"===document.readyState?window.setTimeout(t,0):window.addEventListener("load",()=>window.setTimeout(t,0),{once:!0})})()</script><canvas id="fireworks" style="position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:32767"></canvas><script>(()=>{let e=["https://s4.zstatic.net/ajax/libs/animejs/3.2.1/anime.min.js","/js/fireworks.min.js"];function t(){e.reduce((e,t)=>e.then(()=>{return o=t,new Promise(e=>{let t=document.createElement("script"),n=window.setTimeout(()=>{t.remove(),e()},8e3);t.src=o,t.async=!1,t.onload=t.onerror=()=>{window.clearTimeout(n),e()},document.body.appendChild(t)});var o}),Promise.resolve())}"complete"===document.readyState?window.setTimeout(t,0):window.addEventListener("load",()=>window.setTimeout(t,0),{once:!0})})()</script></body></html>
